@@ -1,15 +1,19 @@
 import { Round } from "../game/game";
 
-const safeEvalPattern = /[+*/\(\)0-9-]+/;
+const safeEvalPattern = /^[+*/\(\)\s0-9-]+$/;
 
 function safeEval(text: string) {
   const isSafe = safeEvalPattern.test(text);
   if (!isSafe) {
     return { valid: false, value: null };
   }
-  const func = new Function("return " + text);
-  const result = func() as number;
-  return { valid: true, value: result };
+  try {
+    const func = new Function("return " + text);
+    const result = func() as number;
+    return { valid: true, value: result };
+  } catch (err) {
+    return { valid: false, value: null };
+  }
 }
 
 export function parseExpression(expression: string, round: Round) {
