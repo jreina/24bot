@@ -46,3 +46,10 @@ export function solve(cards: Card[]): string[] {
   );
   return results;
 }
+
+/**
+ * Returns true if the given cards have a solution.
+ */
+export function hasSolution(cards: Card[]): boolean {
+  return solve(cards).length > 0;
+}

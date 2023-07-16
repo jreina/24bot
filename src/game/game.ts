@@ -4,6 +4,7 @@ import EventEmitter from "events";
 import { AnyRecord } from "dns";
 import { Func } from "../types/Func";
 import { parseExpression } from "../utils/parseExpression";
+import { hasSolution } from "../solver/solver";
 
 const CARDS_PER_ROUND = 4;
 
@@ -43,27 +44,6 @@ export class Game {
 
   constructor(private _gameConfig: GameConfig) {}
 
-  public start(): void {
-    this._initDeck();
-    this._draw();
-  }
-
-  private _draw(): void {
-    if (this._deck.length === 0) {
-      this._log("Draw: No cards left in deck");
-      this._gameEventEmitter.emit(GameEvent.GameFinished);
-      return;
-    }
-
-    this._log("Drawing new round");
-    this._current = this._chance.pickset(this._deck, CARDS_PER_ROUND) as Round;
-    this._deck = this._deck.filter((item) => !this._current.includes(item));
-    this._discards.push(...this._current);
-    this._gameEventEmitter.emit(GameEvent.CurrentChanged, this._current);
-    this._gameEventEmitter.emit(GameEvent.DeckChanged, this._deck);
-    this._gameEventEmitter.emit(GameEvent.DiscardsChanged, this._discards);
-  }
-
   public get current(): Round {
     return this._current;
   }
@@ -78,6 +58,47 @@ export class Game {
 
   public get players(): Array<PlayerData> {
     return this._players;
+  }
+
+  private _draw(): void {
+    if (this._deck.length === 0) {
+      this._log("Draw: No cards left in deck");
+      this._gameEventEmitter.emit(GameEvent.GameFinished);
+      return;
+    }
+
+    this._log("Drawing new round");
+    this._current = this._chance.pickset(this._deck, CARDS_PER_ROUND) as Round;
+    this._deck = this._deck.filter((item) => !this._current.includes(item));
+    this._discards.push(...this._current);
+
+    // Automatic redraw logic
+    const shouldRedraw = !hasSolution(this._current);
+
+    if (shouldRedraw) {
+      // Redraw if we can
+      if (this._deck.length > 0) {
+        this._log(
+          `No solutions for [${this._current
+            .map((card) => card.number)
+            .join(", ")}]. Automatic redraw.`
+        );
+        return this._draw();
+      } else {
+        // Otherwise, game over
+        this._gameEventEmitter.emit(GameEvent.GameFinished);
+        return;
+      }
+    }
+
+    this._gameEventEmitter.emit(GameEvent.CurrentChanged, this._current);
+    this._gameEventEmitter.emit(GameEvent.DeckChanged, this._deck);
+    this._gameEventEmitter.emit(GameEvent.DiscardsChanged, this._discards);
+  }
+
+  public start(): void {
+    this._initDeck();
+    this._draw();
   }
 
   public attemptSolution(playerId: string, solution: string): void {
