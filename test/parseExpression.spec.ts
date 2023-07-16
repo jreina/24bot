@@ -1,4 +1,3 @@
-import { expect } from "chai";
 import { CardSuite } from "../src/game/deck";
 import { parseExpression } from "../src/utils/parseExpression";
 
@@ -11,6 +10,6 @@ describe("parseExpression", () => {
       { number: 4, suite: CardSuite.Heart, symbol: "4" },
     ]);
 
-    expect(result).to.eql({ valid: true, value: 24 });
+    expect(result).toEqual({ valid: true, value: 24 });
   });
 });
