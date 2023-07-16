@@ -1,5 +1,12 @@
 import { Game, GameEvent } from "../../src/game/game";
-import { solve } from "../../src/solver/solver";
+
+jest.mock("chance", () => ({
+  Chance: jest.fn().mockImplementation(() => ({
+    pickset: jest
+      .fn()
+      .mockReturnValue([1, 2, 3, 4].map((n) => ({ number: n }))),
+  })),
+}));
 
 describe("Game", () => {
   it("should call DeckChanged when the game starts", () => {
@@ -37,23 +44,15 @@ describe("Game", () => {
     expect(incorrectAttemptHandler).toHaveBeenCalled();
   });
 
-  // TODO: Skipping for now since the solver is not producing
-  // coherent results.
-  it.skip("should call PointScored when a correct attempt is made", () => {
+  it("should call PointScored when a correct attempt is made", () => {
     const game = new Game({ includeFaceCards: false });
     const correctAttemptHandler = jest.fn();
     game.addListener(GameEvent.PointScored, correctAttemptHandler);
 
     game.start();
 
-    let solutions = solve(game.current);
+    game.attemptSolution("fakeplayer", "4*3*2*1");
 
-    while (solutions.length === 0) {
-      game.skipRound("fakeplayer");
-      solutions = solve(game.current);
-    }
-    
-    game.attemptSolution("fakeplayer", solutions[0]);
     expect(correctAttemptHandler).toHaveBeenCalled();
   });
 });

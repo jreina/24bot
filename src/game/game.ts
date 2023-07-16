@@ -1,5 +1,5 @@
 import { Card, Deck } from "./deck";
-import chance from "chance";
+import { Chance } from "chance";
 import EventEmitter from "events";
 import { AnyRecord } from "dns";
 import { Func } from "../types/Func";
@@ -36,13 +36,12 @@ export class Game {
   private _deck!: Array<Card>;
   private _discards: Array<Card> = [];
   private _current!: Round;
-  private _chance = chance();
+  private _chance = Chance();
   private _players: Array<PlayerData> = [];
 
   private _gameEventEmitter = new EventEmitter();
 
-  constructor(private _gameConfig: GameConfig) {
-  }
+  constructor(private _gameConfig: GameConfig) {}
 
   public start(): void {
     this._initDeck();
