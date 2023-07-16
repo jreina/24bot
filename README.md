@@ -1,22 +1,9 @@
 # 24-bot
 
-A Discord bot.
+A Discord bot to play [the 24 game](https://en.wikipedia.org/wiki/24_(puzzle)) with your friends!
 
 ## Commands:
 
 ### `420!help`
 
-prints this help text
-
-### `420!start`
-
-Starts a game bound to the current channel
-
-### `420!restart`
-
-Restarts the game
-
-### `420!scoreboard`
-
-Prints the score for the current game
-
+Prints all available help text for the bot.
