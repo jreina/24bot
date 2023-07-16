@@ -3,7 +3,6 @@ import Discord, { Message } from "discord.js";
 import auth from "./config";
 import { CardSuite } from "./game/deck";
 import { Game, GameEvent, Round } from "./game/game";
-import helpText from "./helpText";
 import { solve } from "./solver/solver";
 
 const logger = console;
