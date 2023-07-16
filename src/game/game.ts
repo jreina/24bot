@@ -39,6 +39,10 @@ export class Game {
   private _current!: Round;
   private _chance = Chance();
   private _players: Array<PlayerData> = [];
+  private _skips: { count: number; cards: Array<Card> } = {
+    count: 0,
+    cards: [],
+  };
 
   private _gameEventEmitter = new EventEmitter();
 
@@ -52,6 +56,10 @@ export class Game {
     return this._discards;
   }
 
+  public get skips(): { count: number; cards: Array<Card> } {
+    return this._skips;
+  }
+
   public get deck(): Array<Card> {
     return this._deck;
   }
@@ -60,14 +68,14 @@ export class Game {
     return this._players;
   }
 
-  private _draw(): void {
+  private _draw(isSkip = false): void {
     if (this._deck.length === 0) {
       this._log("Draw: No cards left in deck");
       this._gameEventEmitter.emit(GameEvent.GameFinished);
       return;
     }
 
-    this._log("Drawing new round");
+    this._log(`Drawing new round. ${this._deck.length} cards left in deck.`);
     this._current = this._chance.pickset(this._deck, CARDS_PER_ROUND) as Round;
     this._deck = this._deck.filter((item) => !this._current.includes(item));
     this._discards.push(...this._current);
@@ -83,7 +91,7 @@ export class Game {
             .map((card) => card.number)
             .join(", ")}]. Automatic redraw.`
         );
-        return this._draw();
+        return this._draw(isSkip);
       } else {
         // Otherwise, game over
         this._gameEventEmitter.emit(GameEvent.GameFinished);
@@ -91,9 +99,11 @@ export class Game {
       }
     }
 
-    this._gameEventEmitter.emit(GameEvent.CurrentChanged, this._current);
-    this._gameEventEmitter.emit(GameEvent.DeckChanged, this._deck);
-    this._gameEventEmitter.emit(GameEvent.DiscardsChanged, this._discards);
+    if (!isSkip) {
+      this._gameEventEmitter.emit(GameEvent.CurrentChanged, this._current);
+      this._gameEventEmitter.emit(GameEvent.DeckChanged, this._deck);
+      this._gameEventEmitter.emit(GameEvent.DiscardsChanged, this._discards);
+    }
   }
 
   public start(): void {
@@ -126,35 +136,26 @@ export class Game {
 
   public skipRound(playerId: string): void {
     this._log(`Player ${playerId} skipped round`);
-    this._draw();
+    this._draw(true);
     this._gameEventEmitter.emit(GameEvent.RoundSkipped, this._current);
+    this._skips.count += 1;
+    this._skips.cards.push(...this._current);
   }
 
-  private _addPoint(playerId: string): void {
-    this._log(`Player ${playerId} scored a point`);
-
-    const player =
-      this._players.find((player) => player.id === playerId) ||
-      this._addPlayer(playerId);
-
-    player.score += 1;
-    player.cards.push(...this._current);
-    this._gameEventEmitter.emit(GameEvent.PointScored, player);
+  public removeListener(event: GameEvent, handler: Func<AnyRecord, void>) {
+    this._gameEventEmitter.off(event, handler);
   }
 
-  /**
-   * Adds an empty player with the specified id.
-   */
-  private _addPlayer(id: string) {
-    this._log(`Adding player ${id}`);
+  public restart(): void {
+    this._log("Restarting game");
 
-    if (this._players.find((player) => player.id === id)) {
-      this._log(`Player with id ${id} already exists`);
-    }
-    const player = { id, cards: [], score: 0 };
-    this._players.push(player);
+    this._players.forEach((player) => {
+      player.score = 0;
+      player.cards = [];
+    });
+    this._initDeck();
+    this._draw();
     this._gameEventEmitter.emit(GameEvent.PlayersChanged, this._players);
-    return player;
   }
 
   public addListener(
@@ -190,22 +191,6 @@ export class Game {
     this._gameEventEmitter.on(event, handler);
   }
 
-  public removeListener(event: GameEvent, handler: Func<AnyRecord, void>) {
-    this._gameEventEmitter.off(event, handler);
-  }
-
-  public restart(): void {
-    this._log("Restarting game");
-
-    this._players.forEach((player) => {
-      player.score = 0;
-      player.cards = [];
-    });
-    this._initDeck();
-    this._draw();
-    this._gameEventEmitter.emit(GameEvent.PlayersChanged, this._players);
-  }
-
   private _initDeck(): void {
     this._deck = this._gameConfig.includeFaceCards
       ? [...Deck]
@@ -214,5 +199,32 @@ export class Game {
 
   private _log(message: string) {
     this._gameConfig.logger?.(message);
+  }
+
+  private _addPoint(playerId: string): void {
+    this._log(`Player ${playerId} scored a point`);
+
+    const player =
+      this._players.find((player) => player.id === playerId) ||
+      this._addPlayer(playerId);
+
+    player.score += 1;
+    player.cards.push(...this._current);
+    this._gameEventEmitter.emit(GameEvent.PointScored, player);
+  }
+
+  /**
+   * Adds an empty player with the specified id.
+   */
+  private _addPlayer(id: string) {
+    this._log(`Adding player ${id}`);
+
+    if (this._players.find((player) => player.id === id)) {
+      this._log(`Player with id ${id} already exists`);
+    }
+    const player = { id, cards: [], score: 0 };
+    this._players.push(player);
+    this._gameEventEmitter.emit(GameEvent.PlayersChanged, this._players);
+    return player;
   }
 }

@@ -35,7 +35,11 @@ function printScoreboard(game: Game) {
     )
     .join("\n")}
     
-    There are ${game.deck.length} cards left to play.`;
+    There have been ${game.skips.count} skips.`;
+}
+
+function printCardsRemaining(game: Game) {
+  return `There are ${game.deck.length} cards left to play.`;
 }
 
 const commands: Array<{
@@ -95,10 +99,12 @@ ${commands.map(({ command, helpText }) => `\`24!${command}\` ${helpText}`).join(
         message.channel.send("Game started");
 
         activeGame.addListener(GameEvent.PointScored, (player) => {
+          if(activeGame.deck.length === 0) return;
           message.channel.send(
             `${player.id} scored a point! ${player.score} points total.
             
-            ${printScoreboard(activeGame)}`
+            ${printScoreboard(activeGame)}
+            ${printCardsRemaining(activeGame)}`
           );
         });
 
@@ -115,7 +121,6 @@ ${commands.map(({ command, helpText }) => `\`24!${command}\` ${helpText}`).join(
         activeGame.addListener(GameEvent.GameFinished, () => {
           message.channel.send(`Game over! Here's the final scoreboard:
           ${printScoreboard(activeGame)}`);
-          activeGame.restart();
         });
 
         activeGame.addListener(GameEvent.CurrentChanged, async (round) => {
