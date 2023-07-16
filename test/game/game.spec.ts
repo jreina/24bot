@@ -52,9 +52,7 @@ describe("Game", () => {
       game.skipRound("fakeplayer");
       solutions = solve(game.current);
     }
-
-    console.log(game.current)
-    console.log(solutions[0]);
+    
     game.attemptSolution("fakeplayer", solutions[0]);
     expect(correctAttemptHandler).toHaveBeenCalled();
   });
